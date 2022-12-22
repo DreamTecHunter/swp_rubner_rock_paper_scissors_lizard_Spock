@@ -37,7 +37,7 @@ def add():
         "insert into rpsls_flask(name, hand, amount) values (%s, %s, %s) on duplicate key update amount = %s;",
         data + [data[-1]])
     mysql.connection.commit()
-    return "done"
+    return f'$ Stats: {data[1]} uploaded.'
 
 
 if __name__ == '__main__':

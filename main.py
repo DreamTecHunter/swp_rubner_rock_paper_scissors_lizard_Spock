@@ -1,5 +1,5 @@
 import copy
-from random import random
+from random import random, randint
 import requests
 import mysql.connector
 
@@ -12,7 +12,7 @@ class RPSObject:
         self.lower_hand = copy.deepcopy(lower_hand) if lower_hand is not None else list()
 
     def __str__(self):
-        return f"RPSLSObject:\nupper_hand\t{self.upper_hand.name}\n\tlower_hand{self.lower_hand.name}"
+        return f"RPSLSObject:\nupper_hand\t{[u_h for u_h in self.upper_hand]}\n\tlower_hand{[l_h for l_h in self.lower_hand]}"
 
     def add_upper_hand(self, upper_hands: list):
         [self.upper_hand.append(upper_hand) for upper_hand in upper_hands]
@@ -69,20 +69,23 @@ class RPSLSHandler:
         else:
             self.game_object = init_game_object_rpsls()
         self.stats = Stats()
+        self.stats.prep_t_hand()
         self.user_name = "anonymous"
 
     def menu(self):
         print(spacer())
         print("Welcome to the RPSLSHandler")
+        print(spacer())
         self.user_name = input("Please enter your name: ").lower()
+        print(spacer())
         leave = False
         while not leave:
-            print(spacer())
             options = [self.play, self.statistic, self.upload]
             messages = ["play", "statistic", "upload"]
             print("Please pick an option:")
             [print(f"{i}:\t{messages[i]}") for i in range(len(messages))]
             print("Or click something else to exit.")
+            print(spacer())
             user_input = input("Your input: ")
             if user_input.isnumeric():
                 user_input = int(user_input)
@@ -99,8 +102,10 @@ class RPSLSHandler:
             print(spacer())
             [print(f"{i}:\t{self.game_object[i].name}") for i in range(len(self.game_object))]
             try:
+                print(spacer())
                 user_input = int(input("Please pick a hand:\t"))
                 opponent_input = int(random() * len(self.game_object))
+                opponent_input = self.stat_supported_com_choice()
                 print(spacer())
 
                 print(f"user/{self.game_object[user_input].name} vs com/{self.game_object[opponent_input].name}")
@@ -124,17 +129,43 @@ class RPSLSHandler:
 
             if "x" == input("Click 'x' to leave the game:\t"):
                 dont_stop = False
-            print(spacer())
+                print(spacer())
 
-    def stat_supported_com_choice(self):
+    def stat_supported_com_choice_object(self):
         # sort hand by pick-rate dec and search for the counter-picks
-        # keep second hand in mind for the counter-picks of the first hand,
-        # so the second hand might not be countering the counter-pick of the first hand
-        pass
+        # TODO: keep second hand in mind for the counter-picks of the first hand,
+        # TODO: so the second hand might not be countering the counter-pick of the first hand
+        hands_ordered_by_occurence = []
+        for hand in self.stats.get_stats(self.user_name):
+            for h in self.game_object:
+                if h.name.__eq__(hand):
+                    hands_ordered_by_occurence.append(h)
+        if random() < 0.75:
+            return hands_ordered_by_occurence[0].upper_hand[
+                randint(0, len(hands_ordered_by_occurence[0].upper_hand) - 1)].name
+        elif random() < 0.6:
+            return hands_ordered_by_occurence[1].upper_hand[
+                randint(0, len(hands_ordered_by_occurence[0].upper_hand) - 1)].name
+        elif random() < 0.4:
+            return hands_ordered_by_occurence[2].upper_hand[
+                randint(0, len(hands_ordered_by_occurence[0].upper_hand) - 1)].name
+        elif random() < 0.25:
+            return hands_ordered_by_occurence[3].upper_hand[
+                randint(0, len(hands_ordered_by_occurence[0].upper_hand) - 1)].name
+        else:
+            return hands_ordered_by_occurence[4].upper_hand[
+                randint(0, len(hands_ordered_by_occurence[0].upper_hand) - 1)].name
+
+    def stat_supported_com_choice_number(self):
+        hand = self.stat_supported_com_choice_object()
+        for i in range(len(self.game_object)):
+            if self.game_object[i].name.__eq__(hand):
+                return i
 
     def statistic(self):
         print(spacer())
         print(self.stats.get_stats(self.user_name))
+        print(spacer())
 
     def upload(self):
         print(spacer())
@@ -154,6 +185,7 @@ class RPSLSHandler:
                 }
             )
             print(response.text)
+        print(spacer())
 
 
 class Stats:
@@ -245,8 +277,5 @@ class MyAPI:
 
 
 if __name__ == '__main__':
-    s = Stats()
-    s.prep_t_hand()
-    s.get_stats("tobi")
     handler = RPSLSHandler()
     handler.menu()
